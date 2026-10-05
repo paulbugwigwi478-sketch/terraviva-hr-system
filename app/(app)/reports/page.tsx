@@ -14,7 +14,7 @@ export default function ReportsPage() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    createClient().from('employees').select('id,employee_no,first_name,middle_name,last_name,gender,status,employment_type,hire_date,departments(name),positions(title)')
+    createClient().from('employees').select('id,employee_no,first_name,middle_name,last_name,gender,status,employment_type,hire_date,departments!employees_department_id_fkey(name),positions(title)')
       .order('last_name').then(({ data, error }) => { if (error) setError(error.message); setEmps(data ?? []) })
   }, [])
   useEffect(() => {
