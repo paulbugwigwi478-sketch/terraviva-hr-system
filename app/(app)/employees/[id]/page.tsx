@@ -29,7 +29,7 @@ export default function EmployeePage() {
 
   const load = useCallback(async () => {
     const sb = createClient()
-    const { data } = await sb.from('employees').select('*, departments(name), positions(title), manager:employees!manager_id(id,first_name,last_name)').eq('id', id).maybeSingle()
+    const { data } = await sb.from('employees').select('*, departments!employees_department_id_fkey(name), positions(title), manager:employees!manager_id(id,first_name,last_name)').eq('id', id).maybeSingle()
     setEmp(data ?? null)
     if (isHr) {
       const [d, p, e] = await Promise.all([
