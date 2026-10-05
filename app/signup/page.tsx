@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { FormEvent, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { LogoFull } from '@/components/Logo'
+import PasswordInput from '@/components/PasswordInput'
 
 export default function SignupPage() {
   const [fullName, setFullName] = useState('')
@@ -38,7 +39,7 @@ export default function SignupPage() {
           <form onSubmit={signUp}>
             <label>Full name<input value={fullName} onChange={e => setFullName(e.target.value)} required /></label>
             <label>Email<input type="email" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email" /></label>
-            <label>Password (min 8 characters)<input type="password" minLength={8} value={password} onChange={e => setPassword(e.target.value)} required autoComplete="new-password" /></label>
+            <label>Password (min 8 characters)<PasswordInput value={password} onChange={setPassword} minLength={8} autoComplete="new-password" /></label>
             {error && <p className="error">{error}</p>}
             <button className="primary" disabled={loading}>{loading ? 'Creating…' : 'Create account'}</button>
           </form>
