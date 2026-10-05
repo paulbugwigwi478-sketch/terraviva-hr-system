@@ -8,6 +8,10 @@ export async function GET(request: Request) {
   const code = searchParams.get('code')
   if (!code) return NextResponse.redirect(`${origin}/login?error=missing_code`)
 
+  // Only allow redirects to a page on this site (for example /reset-password).
+  const next = searchParams.get('next')
+  const safeNext = next && next.startsWith('/') && !next.startsWith('//') ? next : '/'
+
   const cookieStore = await cookies()
   const supabase = createServerClient(SUPABASE_URL, SUPABASE_KEY, {
     cookies: {
@@ -16,5 +20,5 @@ export async function GET(request: Request) {
     },
   })
   const { error } = await supabase.auth.exchangeCodeForSession(code)
-  return NextResponse.redirect(`${origin}${error ? '/login?error=auth_callback' : '/'}`)
+  return NextResponse.redirect(`${origin}${error ? '/login?error=auth_callback' : safeNext}`)
 }
