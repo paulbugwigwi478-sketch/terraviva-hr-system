@@ -4,7 +4,7 @@ import { SUPABASE_KEY, SUPABASE_URL } from './lib/config'
 
 const PUBLIC_PATHS = ['/login', '/signup', '/auth']
 
-export async function proxy(request: NextRequest) {
+const PUBLIC_PATHS = ['/login', '/signup', '/auth', '/forgot-password']
   const response = NextResponse.next({ request })
   const supabase = createServerClient(SUPABASE_URL, SUPABASE_KEY, {
     cookies: {
