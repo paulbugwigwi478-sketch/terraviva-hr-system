@@ -19,7 +19,7 @@ export default function Dashboard() {
     ;(async () => {
       const sb = createClient(), t = todayIso(), year = new Date().getFullYear()
       const [emps, onLeave, pending, contracts, holidays, bal] = await Promise.all([
-        sb.from('employees').select('id,first_name,last_name,status,department_id,employment_type,gender,probation_end_date,departments(name)'),
+        sb.from('employees').select('id,first_name,last_name,status,department_id,employment_type,gender,probation_end_date,departments!employees_department_id_fkey(name)'),
         sb.from('leave_requests').select('id,start_date,end_date,employees(first_name,last_name),leave_types(name)').eq('status', 'approved').lte('start_date', t).gte('end_date', t),
         sb.from('leave_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
         wide ? sb.from('contracts').select('id,end_date,contract_type,employees(id,first_name,last_name)').eq('status', 'active').not('end_date', 'is', null).lte('end_date', inDays(60)).order('end_date') : Promise.resolve({ data: [], error: null }),
