@@ -29,7 +29,7 @@ export default function EmployeesPage() {
     const sb = createClient()
     ;(async () => {
       const [e, d, p] = await Promise.all([
-        sb.from('employees').select('*, departments(name), positions(title), manager:employees!manager_id(first_name,last_name)').order('last_name'),
+        sb.from('employees').select('*, departments!employees_department_id_fkey(name), positions(title), manager:employees!manager_id(first_name,last_name)').order('last_name'),
         sb.from('departments').select('id,name').order('name'),
         sb.from('positions').select('id,title').order('title'),
       ])
