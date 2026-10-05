@@ -7,10 +7,11 @@ import { Briefcase, Building2, CalendarDays, Check, FileText, History, LayoutDas
 import { createClient } from '@/lib/supabase'
 import { ORG_VIEWERS, ROLE_LABELS, can, type Role } from '@/lib/roles'
 import { LogoMark } from '@/components/Logo'
+import Avatar from '@/components/Avatar'
 
 export type Profile = { id: string; organization_id: string | null; full_name: string | null; role: Role; is_active: boolean; employee_id: string | null }
 export type Org = { id: string; name: string; legal_name: string | null }
-type Ctx = { profile: Profile; org: Org; isManager: boolean }
+type Ctx = { profile: Profile; org: Org; isManager: boolean; photoPath: string | null }
 
 const AppContext = createContext<Ctx | null>(null)
 export function useApp(): Ctx {
@@ -49,11 +50,14 @@ export default function AppShell({ children }: { children: ReactNode }) {
     if (!p || !p.organization_id || !p.is_active) { router.replace('/pending'); return }
     const { data: org } = await sb.from('organizations').select('id,name,legal_name').eq('id', p.organization_id).maybeSingle()
     let isManager = false
+    let photoPath: string | null = null
     if (p.employee_id) {
       const { count } = await sb.from('employees').select('id', { count: 'exact', head: true }).eq('manager_id', p.employee_id)
       isManager = (count ?? 0) > 0
+      const { data: me } = await sb.from('employees').select('photo_path').eq('id', p.employee_id).maybeSingle()
+      photoPath = me?.photo_path ?? null
     }
-    setCtx({ profile: p as Profile, org: (org ?? { id: p.organization_id, name: 'Terraviva', legal_name: null }) as Org, isManager })
+    setCtx({ profile: p as Profile, org: (org ?? { id: p.organization_id, name: 'Terraviva', legal_name: null }) as Org, isManager, photoPath })
   }, [router])
   useEffect(() => { boot() }, [boot])
 
@@ -68,7 +72,6 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const items = NAV(ctx).filter(i => i.show(ctx))
   const groups = Array.from(new Set(items.map(i => i.group)))
   const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname.startsWith(href))
-  const initials = (profile.full_name || 'U').split(' ').map(s => s[0]).slice(0, 2).join('').toUpperCase()
 
   return (
     <AppContext.Provider value={ctx}>
@@ -93,9 +96,10 @@ export default function AppShell({ children }: { children: ReactNode }) {
           <div className="topbar">
             <div className="title"><p>{org.name} · Human Resources</p></div>
             <div className="user">
-              <div className="avatar">{initials}</div>
+              <Avatar path={ctx.photoPath} name={profile.full_name || 'User'} size={34} />
               <div><strong>{profile.full_name}</strong><br /><span className="muted" style={{ fontSize: 11 }}>{ROLE_LABELS[profile.role]}</span></div>
-              <button className="mini" onClick={signOut} title="Sign out" style={{ marginLeft: 6 }}><LogOut size={12} /></button>
+              <Link href="/reset-password" className="mini" title="Change password" style={{ marginLeft: 6 }}>Password</Link>
+              <button className="mini" onClick={signOut} title="Sign out"><LogOut size={12} /></button>
             </div>
           </div>
           <div className="mobile-nav">
