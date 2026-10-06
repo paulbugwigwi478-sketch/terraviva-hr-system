@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
-import { Briefcase, Building2, CalendarDays, Check, FileText, History, LayoutDashboard, LogOut, Settings, Shield, User, Users } from 'lucide-react'
+import { Banknote, Briefcase, Building2, Calendar, CalendarDays, Check, FileText, History, LayoutDashboard, LogOut, Receipt, Settings, Shield, User, Users, Wallet } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { ORG_VIEWERS, ROLE_LABELS, can, type Role } from '@/lib/roles'
 import { LogoMark } from '@/components/Logo'
@@ -26,10 +26,15 @@ const NAV = (c: Ctx): Item[] => [
   { href: '/', label: 'Dashboard', icon: <LayoutDashboard size={16} />, group: 'OVERVIEW', show: () => true },
   { href: c.profile.employee_id ? `/employees/${c.profile.employee_id}` : '/me', label: 'My profile', icon: <User size={16} />, group: 'ME', show: () => true },
   { href: '/leave', label: 'My leave', icon: <CalendarDays size={16} />, group: 'ME', show: () => true },
+  { href: '/payslips', label: 'My payslips', icon: <Receipt size={16} />, group: 'ME', show: x => !!x.profile.employee_id },
+  { href: '/calendar', label: 'Team calendar', icon: <Calendar size={16} />, group: 'PEOPLE', show: () => true },
   { href: '/leave-requests', label: 'Leave requests', icon: <Check size={16} />, group: 'PEOPLE', show: x => can(x.profile.role, ['hr_admin', 'director', 'auditor']) || x.isManager },
   { href: '/employees', label: 'Employees', icon: <Users size={16} />, group: 'PEOPLE', show: x => can(x.profile.role, ORG_VIEWERS) || x.isManager },
   { href: '/departments', label: 'Departments', icon: <Building2 size={16} />, group: 'PEOPLE', show: x => can(x.profile.role, ORG_VIEWERS) },
   { href: '/positions', label: 'Positions', icon: <Briefcase size={16} />, group: 'PEOPLE', show: x => can(x.profile.role, ORG_VIEWERS) },
+  { href: '/payroll', label: 'Payroll', icon: <Wallet size={16} />, group: 'PAYROLL', show: x => can(x.profile.role, ['hr_admin', 'director']) },
+  { href: '/pay-items', label: 'Allowances & deductions', icon: <Banknote size={16} />, group: 'PAYROLL', show: x => can(x.profile.role, ['hr_admin', 'director']) },
+  { href: '/payroll-settings', label: 'Payroll settings', icon: <Settings size={16} />, group: 'PAYROLL', show: x => can(x.profile.role, ['hr_admin']) },
   { href: '/reports', label: 'Reports', icon: <FileText size={16} />, group: 'ADMIN', show: x => can(x.profile.role, ORG_VIEWERS) },
   { href: '/audit', label: 'Audit log', icon: <History size={16} />, group: 'ADMIN', show: x => can(x.profile.role, ORG_VIEWERS) },
   { href: '/holidays', label: 'Holidays', icon: <CalendarDays size={16} />, group: 'ADMIN', show: x => can(x.profile.role, ['hr_admin']) },
