@@ -7,6 +7,8 @@ import { createClient } from '@/lib/supabase'
 import { useApp } from '@/components/AppShell'
 import { can } from '@/lib/roles'
 import { errMsg, fmtDate, fullName, money, pretty, todayIso } from '@/lib/format'
+import EmployeeHeader from '@/components/EmployeeHeader'
+import LeaveBalances from '@/components/LeaveBalances'
 import { CONTRACT_STATUSES, CONTRACT_TYPES, DOC_CATEGORIES, EMPLOYEE_STATUSES, EMPLOYMENT_TYPES, MAX_UPLOAD_BYTES } from '@/lib/hr'
 
 type Msg = { kind: 'error' | 'success'; text: string } | null
@@ -44,14 +46,9 @@ export default function EmployeePage() {
   if (emp === undefined) return <p className="empty">Loading…</p>
   if (emp === null) return <div className="module-page"><div className="panel"><p className="empty">This employee record was not found, or you do not have access to it. <Link href="/">Back to dashboard</Link></p></div></div>
 
-  const initials = `${emp.first_name?.[0] ?? ''}${emp.last_name?.[0] ?? ''}`.toUpperCase()
   return (
     <div className="module-page">
-      <div className="profile-head">
-        <div className="big">{initials}</div>
-        <div><h1 style={{ margin: 0, fontSize: 23 }}>{fullName(emp)}</h1>
-          <p className="muted">{emp.employee_no} · {emp.positions?.title ?? 'No position'} · {emp.departments?.name ?? 'No department'} · <span className={`status ${emp.status}`}>{pretty(emp.status)}</span></p></div>
-      </div>
+      <EmployeeHeader emp={emp} orgId={org.id} isHr={isHr} setMsg={setMsg} reload={load} />
       {msg && <p className={`${msg.kind} msg`}>{msg.text}</p>}
 
       <ProfileSection emp={emp} isHr={isHr} depts={depts} positions={positions} people={people} setMsg={setMsg} reload={load} />
@@ -59,7 +56,7 @@ export default function EmployeePage() {
       {seesSalary && <CompensationSection emp={emp} orgId={org.id} isHr={isHr} setMsg={setMsg} />}
       {seesContracts && <ContractsSection emp={emp} orgId={org.id} isHr={isHr} setMsg={setMsg} />}
       {seesSensitive && <DocumentsSection emp={emp} orgId={org.id} isHr={isHr} setMsg={setMsg} />}
-      <LeaveSection emp={emp} />
+      <LeaveBalances emp={emp} orgId={org.id} isHr={isHr} setMsg={setMsg} />
     </div>
   )
 }
@@ -321,24 +318,6 @@ function DocumentsSection({ emp, orgId, isHr, setMsg }: any) {
           {rows.map(d => <tr key={d.id}><td><strong>{d.name}</strong></td><td>{pretty(d.category)}</td>
             <td>{d.expires_on ? <span className={d.expires_on < todayIso() ? 'status rejected' : ''}>{fmtDate(d.expires_on)}</span> : '—'}</td><td>{fmtDate(d.uploaded_at)}</td>
             <td style={{ whiteSpace: 'nowrap', textAlign: 'right' }}><button className="mini" onClick={() => open(d)}>View</button>{isHr && <button className="mini danger" onClick={() => remove(d)}>Delete</button>}</td></tr>)}
-        </tbody></table>)}
-    </div>
-  )
-}
-
-/* ---------------- Leave balances ---------------- */
-function LeaveSection({ emp }: any) {
-  const year = new Date().getFullYear()
-  const [rows, setRows] = useState<any[] | null>(null)
-  useEffect(() => {
-    createClient().rpc('leave_balances_for', { p_employee_id: emp.id, p_year: year }).then(({ data }) => setRows((data as any[]) ?? []))
-  }, [emp.id, year])
-  return (
-    <div className="panel"><h2>Leave balances, {year}</h2>
-      {rows === null ? <p className="empty">Loading…</p> : rows.length === 0 ? <p className="empty">Not available.</p> : (
-        <table><thead><tr><th>Leave type</th><th className="num">Entitled</th><th className="num">Carried over</th><th className="num">Used</th><th className="num">Pending</th><th className="num">Remaining</th></tr></thead><tbody>
-          {rows.map((r: any) => <tr key={r.leave_type_id}><td><strong>{r.name}</strong></td><td className="num">{r.entitled ?? '∞'}</td><td className="num">{r.carried_over}</td>
-            <td className="num">{r.used}</td><td className="num">{r.pending}</td><td className="num"><strong>{r.remaining ?? '∞'}</strong></td></tr>)}
         </tbody></table>)}
     </div>
   )
