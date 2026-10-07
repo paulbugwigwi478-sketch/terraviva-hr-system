@@ -14,6 +14,23 @@ export function printPayslip(line: any, orgName: string) {
   const row = (label: string, amount: number, bold = false) =>
     `<tr${bold ? ' class="b"' : ''}><td>${esc(label)}</td><td class="n">${money(amount, '')}</td></tr>`
 
+  // Basic salary, with the part-month and unpaid-leave adjustments spelled out when they apply
+  const unpaidDed = Number(line.unpaid_leave_deduction ?? 0)
+  const fullBasic = Number(line.basic_full_month ?? 0)
+  const proratedBasic = Number(line.basic_salary) + unpaidDed
+  const partMonth = fullBasic > 0 && Number(line.days_paid) < Number(line.days_in_month)
+  let basicRows = ''
+  if (fullBasic > 0 && (partMonth || unpaidDed > 0)) {
+    basicRows += row('Monthly basic salary', fullBasic)
+    if (partMonth) basicRows += row(`Part-month adjustment (${line.days_paid} of ${line.days_in_month} days)`, proratedBasic - fullBasic)
+    if (unpaidDed > 0) basicRows += row(`Unpaid leave (${line.unpaid_leave_days} working days)`, -unpaidDed)
+    basicRows += row('Basic salary payable', Number(line.basic_salary))
+  } else {
+    basicRows = row('Basic salary', line.basic_salary)
+  }
+  const fxNote = line.salary_currency === 'USD'
+    ? `<div class="muted" style="margin-top:6px">Salary of USD ${money(line.salary_original, '')} converted at TZS ${money(line.fx_rate, '')} per USD.</div>` : ''
+
   const html = `<!doctype html><html><head><meta charset="utf-8"><title>Payslip ${esc(line.employee_name)} ${monthName(line.period_month)} ${line.period_year}</title>
 <style>
  body{font-family:Arial,Helvetica,sans-serif;color:#102a2b;margin:32px;max-width:720px}
@@ -28,9 +45,10 @@ export function printPayslip(line: any, orgName: string) {
 <div>${esc(line.employee_name)} <span class="muted">(${esc(line.employee_no)})</span></div>
 <div class="muted">${esc(line.position || '')}${line.position && line.department ? ' · ' : ''}${esc(line.department || '')}</div>
 <h2>Earnings</h2><table>
-${row('Basic salary', line.basic_salary)}
+${basicRows}
 ${allowances.map(a => row(a.name + (a.taxable ? '' : ' (not taxed)'), a.amount)).join('')}
 ${row('Gross pay', line.gross_pay, true)}</table>
+${fxNote}
 <h2>Deductions</h2><table>
 ${row('NSSF (employee)', line.nssf_employee)}
 ${row('PAYE (income tax)', line.paye)}
