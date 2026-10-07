@@ -2,6 +2,6 @@
 export const FEATURES = {
   attendance: true,
   performance: false,
-  recruitment: false,
-  training: false,
+  recruitment: true,
+  training: true,
 }
