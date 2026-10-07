@@ -23,6 +23,7 @@ export default function PayrollPage() {
   const [year, setYear] = useState(String(now.getFullYear()))
   const [month, setMonth] = useState(String(now.getMonth() + 1))
   const [note, setNote] = useState('')
+  const [usd, setUsd] = useState('')
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<Msg>(null)
 
@@ -47,7 +48,7 @@ export default function PayrollPage() {
 
   async function generate(e: FormEvent) {
     e.preventDefault(); setBusy(true); setMsg(null)
-    const { data, error } = await createClient().rpc('generate_payroll', { p_year: Number(year), p_month: Number(month), p_note: note.trim() || null })
+    const { data, error } = await createClient().rpc('generate_payroll', { p_year: Number(year), p_month: Number(month), p_note: note.trim() || null, p_usd_rate: usd.trim() ? Number(usd) : null })
     setBusy(false)
     if (error) return setMsg({ kind: 'error', text: error.message })
     setNote(''); setMsg({ kind: 'success', text: 'Payroll prepared. Check it, then ask someone else (a Director or another HR admin) to approve it.' })
@@ -90,9 +91,10 @@ export default function PayrollPage() {
         <form className="form-grid" onSubmit={generate}>
           <label>Month<select value={month} onChange={e => setMonth(e.target.value)}>{Array.from({ length: 12 }, (_, i) => <option key={i} value={i + 1}>{monthName(i + 1)}</option>)}</select></label>
           <label>Year<input type="number" min="2000" max="2100" value={year} onChange={e => setYear(e.target.value)} /></label>
+          <label>USD rate (TZS per 1 USD)<input type="number" step="0.01" min="0" value={usd} onChange={e => setUsd(e.target.value)} placeholder="Only if someone is paid in USD" /></label>
           <label>Note (optional)<input value={note} onChange={e => setNote(e.target.value)} /></label>
           <div className="actions"><button className="primary" disabled={busy || confirmed === false}>{busy ? 'Preparing…' : 'Prepare payroll'}</button>
-            <span className="muted">Uses each active employee’s latest TZS salary and their active allowances and deductions.</span></div>
+            <span className="muted">Uses each employee’s latest salary (TZS or USD) and active allowances and deductions. Staff who joined or left during the month are paid for the days worked, and approved unpaid leave is deducted.</span></div>
         </form>)}
 
       <div className="panel"><h2>Payroll runs</h2>
@@ -110,7 +112,7 @@ export default function PayrollPage() {
         <>
           <div className="page-head" style={{ marginTop: 6 }}>
             <div><h2 style={{ margin: 0 }}>{monthName(sel.period_month)} {sel.period_year} <span className={`status ${sel.status === 'paid' ? 'active' : sel.status === 'cancelled' ? 'rejected' : 'pending'}`}>{pretty(sel.status)}</span></h2>
-              <p className="muted">{sel.approved_at ? `Approved ${fmtDate(sel.approved_at)}. ` : ''}{sel.paid_at ? `Paid ${fmtDate(sel.paid_at)}.` : ''}</p></div>
+              <p className="muted">{sel.usd_rate ? `USD rate used: TZS ${money(sel.usd_rate)}. ` : ''}{sel.approved_at ? `Approved ${fmtDate(sel.approved_at)}. ` : ''}{sel.paid_at ? `Paid ${fmtDate(sel.paid_at)}.` : ''}</p></div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {sel.status === 'draft' && !preparedByMe && <button className="primary" onClick={() => act('approve_payroll', 'Payroll approved. Employees can now see their payslips.')}>Approve payroll</button>}
               {sel.status === 'draft' && preparedByMe && <span className="muted" style={{ alignSelf: 'center' }}>Waiting for someone else to approve</span>}
@@ -138,14 +140,17 @@ export default function PayrollPage() {
 
           <div className="panel"><h2>Employees</h2>
             <table><thead><tr><th>Employee</th><th className="num">Gross</th><th className="num">NSSF</th><th className="num">PAYE</th><th className="num">Other deductions</th><th className="num">Net pay</th><th /></tr></thead><tbody>
-              {lines.map(l => <tr key={l.id}><td><strong>{l.employee_name}</strong><br /><span className="muted">{l.employee_no}{l.department ? ` · ${l.department}` : ''}</span></td>
+              {lines.map(l => <tr key={l.id}><td><strong>{l.employee_name}</strong><br /><span className="muted">{l.employee_no}{l.department ? ` · ${l.department}` : ''}</span>
+                {Number(l.days_paid) > 0 && Number(l.days_paid) < Number(l.days_in_month) && <><br /><span className="muted">Part month: {l.days_paid} of {l.days_in_month} days</span></>}
+                {Number(l.unpaid_leave_days) > 0 && <><br /><span className="muted">Unpaid leave: {l.unpaid_leave_days} days</span></>}
+                {l.salary_currency === 'USD' && <><br /><span className="muted">USD {money(l.salary_original)} at {money(l.fx_rate)}</span></>}</td>
                 <td className="num">{money(l.gross_pay)}</td><td className="num">{money(l.nssf_employee)}</td><td className="num">{money(l.paye)}</td>
                 <td className="num">{money(Number(l.other_deductions) + Number(l.nhif_employee))}</td><td className="num"><strong>{money(l.net_pay)}</strong></td>
                 <td style={{ textAlign: 'right' }}><button className="mini" onClick={() => printPayslip(l, org.name)}>Payslip</button></td></tr>)}
             </tbody>
             <tfoot><tr><td>Total</td><td className="num">{money(t.gross)}</td><td className="num">{money(t.nssfE)}</td><td className="num">{money(t.paye)}</td><td className="num">{money(t.other + t.nhifE)}</td><td className="num">{money(t.net)}</td><td /></tr></tfoot></table>
             {sel.status === 'draft' && missing.length > 0 && (
-              <p className="muted" style={{ marginTop: 12 }}>Not in this payroll (no TZS salary recorded yet): {missing.map(m => fullName(m)).join(', ')}. Add their salary on their employee page, then cancel and prepare the payroll again.</p>)}
+              <p className="muted" style={{ marginTop: 12 }}>Not in this payroll (no salary recorded yet): {missing.map(m => fullName(m)).join(', ')}. Add their salary on their employee page, then cancel and prepare the payroll again.</p>)}
           </div>
         </>
       )}
