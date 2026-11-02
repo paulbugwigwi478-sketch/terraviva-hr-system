@@ -2,7 +2,8 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { SUPABASE_KEY, SUPABASE_URL } from './lib/config'
 
-const PUBLIC_PATHS = ['/login', '/signup', '/auth', '/forgot-password']
+// The app manifest and its icons must be reachable before sign-in, otherwise the phone cannot install the app.
+const PUBLIC_PATHS = ['/login', '/signup', '/auth', '/forgot-password', '/icons', '/manifest.webmanifest']
 
 export async function proxy(request: NextRequest) {
   const response = NextResponse.next({ request })
