@@ -1,11 +1,11 @@
 import './globals.css'
 import type { Metadata, Viewport } from 'next'
-import { LOGO_MARK } from '@/lib/logos'
 
 export const metadata: Metadata = {
   title: { default: 'Terraviva HR System', template: '%s · Terraviva' },
   description: 'Terraviva Human Resources Management System',
-  icons: { icon: LOGO_MARK, apple: LOGO_MARK },
+  icons: { icon: '/icons/192', apple: '/icons/180' },
+  appleWebApp: { capable: true, title: 'Terraviva HR', statusBarStyle: 'default' },
 }
 
 export const viewport: Viewport = { width: 'device-width', initialScale: 1, themeColor: '#087f82' }
